@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "module": "commonjs",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true
+    "target": "ESNext", // or ES6
+    "module": "ESNext", // or CommonJS
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true, // Optional, can help with type checking issues
+    "strict": true // Optional, enables strict type checking
   },
   "include": ["src/**/*.ts"]
 }
