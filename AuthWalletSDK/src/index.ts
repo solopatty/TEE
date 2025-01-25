@@ -1,6 +1,12 @@
 import { ethers } from "ethers"
+import * as bip39 from "bip39"
 import { payments } from "bitcoinjs-lib"
 import { EthereumPublicKey, BitcoinPublicKey } from "./types"
+
+// Hyperplane selection
+
+const hyperplanes = ["blue", "yellow", "red", "green"]
+const directions = ["up", "down", "right", "left"]
 
 // Function to create an Ethereum wallet using Ethers.js
 export function createNewEthereumWallet(): {
@@ -15,6 +21,28 @@ export function createNewEthereumWallet(): {
   }
 
   return { publicKey, privateKey: wallet.privateKey } // Return the private key if needed
+}
+
+// Function to create a new Ethereum wallet using BIP39
+export async function createBIP39Wallet(): Promise<{
+  mnemonic: string
+  publicKey: string
+  privateKey: string
+}> {
+  // Generate a BIP39 mnemonic
+  const mnemonic = bip39.generateMnemonic() // Generates a random mnemonic
+
+  // Convert the mnemonic to a seed
+  const seed = await bip39.mnemonicToSeed(mnemonic)
+
+  // Create a wallet from the seed
+  const wallet = ethers.Wallet.fromMnemonic(mnemonic)
+
+  // Get the public and private keys
+  const publicKey = wallet.address // Public key (Ethereum address)
+  const privateKey = wallet.privateKey // Private key
+
+  return { mnemonic, publicKey, privateKey }
 }
 
 // Function to import an Ethereum wallet from a private key
@@ -43,3 +71,6 @@ export function setupBitcoinWallet(privateKey: string) {
 
   return { publicKey }
 }
+
+// Fullman protocol
+export default function () {}
