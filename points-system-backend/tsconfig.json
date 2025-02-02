@@ -5,10 +5,22 @@
     "esModuleInterop": true, // If needed for compatibility with ES modules
     "target": "ES6", // Set target ECMAScript version
     "module": "commonjs", // Use CommonJS module system for Node.js
-    "strict": true // Enable strict type checking
+    "strict": true, // Enable strict type checking
+    "moduleResolution": "node",
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ],
+    "resolveJsonModule": true
   },
   "include": [
-    "src/**/*.ts" // Include all .ts files in the src folder
+    "src/**/*" // Include all files in the src folder
   ],
   "exclude": [
     "node_modules" // Exclude node_modules folder
