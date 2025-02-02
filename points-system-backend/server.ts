@@ -1,10 +1,11 @@
-import express from "express"
+import express, { Request, Response } from "express"
 import bodyParser from "body-parser"
 import { Client } from "pg"
 import dotenv from "dotenv"
 
 dotenv.config()
 
+// Create an instance of the express application
 const app = express()
 const port = process.env.PORT || 3000
 
@@ -14,7 +15,7 @@ const client = new Client({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  port: process.env.DB_PORT,
+  port: parseInt(process.env.DB_PORT || "5432"), // Ensure DB_PORT is correctly parsed as an integer
 })
 
 client.connect()
@@ -23,7 +24,7 @@ client.connect()
 app.use(bodyParser.json())
 
 // Endpoint to handle puzzle submission
-app.post("/submit-solution", async (req, res) => {
+app.post("/submit-solution", async (req: Request, res: Response) => {
   const { userId, puzzleId, solution } = req.body
 
   try {
@@ -67,7 +68,7 @@ app.post("/submit-solution", async (req, res) => {
 })
 
 // Dummy function to validate the solution (you'll replace this with real logic)
-function isValidSolution(solution) {
+function isValidSolution(solution: string) {
   return solution === "correct" // For demonstration
 }
 
