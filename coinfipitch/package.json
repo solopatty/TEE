@@ -12,23 +12,29 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
+    "@tsparticles/engine": "^3.8.1",
+    "@tsparticles/react": "^3.0.0",
+    "@tsparticles/slim": "^3.8.1",
+    "framer-motion": "^12.4.1",
+    "motion": "^12.4.7",
     "next": "14.2.24",
     "react": "^18",
     "react-dom": "^18",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-	"framer-motion": "^12.4.1"
-
+    "three": "^0.173.0",
+    "vanta": "^0.5.24"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250214.0",
     "@opennextjs/cloudflare": "^0.4.8",
     "@types/node": "^20",
     "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/three": "^0.173.0",
     "autoprefixer": "^10.4.14",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.24",
     "postcss": "^8",
