@@ -41,7 +41,7 @@ export default function VantaBackground() {
                 scaleMobile: 1.0,
                 color: 0xffffff,
                 backgroundColor: 0x15173c,
-                size: 3.0,
+                size: 0.1,
                 spacing: 20.0,
               })
               setVantaEffect(effect)

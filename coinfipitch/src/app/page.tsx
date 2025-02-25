@@ -10,17 +10,60 @@ import VantaBackground from "@/components/ui/vantabackground"
 export default function Page() {
   const { scrollYProgress } = useScroll()
 
+  // Define target heights for each section
+  const sectionHeights = [
+    window.innerHeight, // Height of the hero section
+    window.innerHeight * 2, // Height of the first section
+    window.innerHeight * 3, // Height of the second section
+  ]
+
+  // Function to scroll to a specific height
+  const scrollToSection = (height: number) => {
+    window.scrollTo({
+      top: height,
+      behavior: "smooth", // Smooth scrolling
+    })
+  }
+
+  // Effect to handle keydown events
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowDown") {
+        // Get the current scroll position
+        const currentScroll = window.scrollY
+
+        // Determine the next section to scroll to
+        const nextSectionIndex = sectionHeights.findIndex(
+          (height) => height > currentScroll
+        )
+        if (nextSectionIndex !== -1) {
+          scrollToSection(sectionHeights[nextSectionIndex])
+        }
+      }
+    }
+
+    // Add event listener for keydown
+    window.addEventListener("keydown", handleKeyDown)
+
+    // Cleanup event listener on component unmount
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [])
+
   return (
-    <motion.div className="relative min-h-screen overflow-hidden">
+    <motion.div className="relative min-h-screen overflow-hidden" tabIndex={0}>
       {/* Hero Section with Vanta Background */}
       <div className="relative h-screen flex justify-center items-center px-4">
         {/* Vanta.js Background (Only for hero section) */}
         <VantaBackground />
 
         {/* Content */}
-        <div className="relative z-10 flex items-center">
-          <CoinLogo />
-          <div className="ml-2">
+        <div className="relative z-10 grid grid-cols-2 gap-4 items-center ml-10">
+          <div className="flex justify-center items-center mr-20">
+            <CoinLogo />
+          </div>
+          <div className="ml-64">
             <div className="text-4xl font-normal text-neutral-500 dark:text-white text-center leading-snug">
               <span className="block">The most</span>
               <span className="block relative min-w-[12rem]">
