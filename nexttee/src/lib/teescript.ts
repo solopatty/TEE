@@ -4,34 +4,55 @@ import keccak256 from "keccak256"
 import BigNumber from "bignumber.js"
 import { ethers } from "ethers"
 
+type DepositEvent = {
+  user: string
+  token: string
+  amount: number
+}
+
 const balances: Record<string, Record<string, number>> = {}
 let currentTree: MerkleTree | null = null
 let root: string | null = null
 let leaves: Buffer[] = []
 
-// Apply deposit events from smart contract
-export function applyDeposits(
-  depositEvents: { user: string; token: string; amount: number }[]
-) {
+// Read deposit events directly from smart contract
+export async function fetchDepositEvents(): Promise<DepositEvent[]> {
+  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL!)
+  const contract = new ethers.Contract(
+    process.env.SOLO_PATTY_CONTRACT!,
+    [
+      "event Deposited(address indexed user, address indexed token, uint256 amount)",
+    ],
+    provider
+  )
+
+  const events = await contract.queryFilter("Deposited", -10000) // Fetch last 10,000 blocks
+
+  return events.map((e: any) => ({
+    user: e.args.user,
+    token: e.args.token,
+    amount: Number(e.args.amount.toString()),
+  }))
+}
+
+// Apply deposit events to balance map
+export async function applyDepositsFromChain() {
+  const depositEvents = await fetchDepositEvents()
   for (const { user, token, amount } of depositEvents) {
     if (!balances[user]) balances[user] = {}
-    balances[user][token] = (balances[user][token] || 0) + Number(amount)
+    balances[user][token] = (balances[user][token] || 0) + amount
   }
 }
 
-// Decrypt user intent (replace with secure enclave decryption)
 export function decryptIntent(encryptedIntent: string) {
-  // In production, decrypt using TEE private key
   return JSON.parse(encryptedIntent)
 }
 
-// Process encrypted intents → match → update balances
 export function processEncryptedIntents(encryptedIntents: string[]) {
   const intents = encryptedIntents.map(decryptIntent)
   return matchIntents(intents)
 }
 
-// Match Coincidence of Wants
 export function matchIntents(intents: any[]) {
   const matches: any[] = []
   const unmatched = [...intents]
@@ -59,14 +80,12 @@ export function matchIntents(intents: any[]) {
   return { matches, unmatched }
 }
 
-// Check if exchange ratios are compatible (within 0.01% slippage)
 function isRatioCompatible(a: any, b: any) {
   const ratioA = new BigNumber(a.sellAmount).div(a.minBuyAmount)
   const ratioB = new BigNumber(b.minBuyAmount).div(b.sellAmount)
   return ratioA.minus(ratioB).abs().lt("0.0001")
 }
 
-// Update balance after a successful CoW match
 function updateBalances(a: any, b: any) {
   if (!balances[a.user]) balances[a.user] = {}
   if (!balances[b.user]) balances[b.user] = {}
@@ -77,7 +96,6 @@ function updateBalances(a: any, b: any) {
     (balances[b.user][b.buyToken] || 0) + Number(b.minBuyAmount)
 }
 
-// Build Merkle tree from current balances
 export function buildMerkleTree() {
   leaves = []
 
@@ -98,7 +116,6 @@ export function buildMerkleTree() {
   return root
 }
 
-// Generate a Merkle proof for a user/token
 export function generateMerkleProof(user: string, token: string) {
   const amount = balances[user]?.[token]
   if (!amount) throw new Error("No balance")
@@ -113,20 +130,17 @@ export function generateMerkleProof(user: string, token: string) {
   return { leaf: leaf.toString("hex"), proof, amount }
 }
 
-// Sign Merkle root with fake key (placeholder)
 export function signMerkleRoot(root: string) {
   const fakePrivateKey = "aabbccddeeff00112233445566778899"
   return crypto.createHmac("sha256", fakePrivateKey).update(root).digest("hex")
 }
 
-// Build Merkle root, sign, return state
 export function exportNewState() {
   const newRoot = buildMerkleTree()
   const signature = signMerkleRoot(newRoot)
   return { newRoot, signature }
 }
 
-// Post Merkle root on-chain (example call)
 export async function postMerkleRoot(newRoot: string, signature: string) {
   const provider = new ethers.JsonRpcProvider(process.env.RPC_URL!)
   const wallet = new ethers.Wallet(process.env.TEE_PRIVATE_KEY!, provider)
