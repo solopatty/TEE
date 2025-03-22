@@ -8,7 +8,7 @@ let currentTree = null
 let root = null
 let leaves = []
 
-// Apply deposit events
+// Apply deposit events from smart contract
 export function applyDeposits(depositEvents) {
   for (const { user, token, amount } of depositEvents) {
     if (!balances[user]) balances[user] = {}
@@ -16,13 +16,19 @@ export function applyDeposits(depositEvents) {
   }
 }
 
-// Decrypt intent (mocked — you’d use TEE inside enclave)
-export function decryptIntent(encrypted) {
-  const decrypted = JSON.parse(encrypted) // Replace with real decryption in TEE
-  return decrypted
+// Decrypt user intent (replace with secure enclave decryption)
+export function decryptIntent(encryptedIntent) {
+  // In production, decrypt using TEE private key
+  return JSON.parse(encryptedIntent)
 }
 
-// Match CoW intents
+// Process encrypted intents → match → update balances
+export function processEncryptedIntents(encryptedIntents) {
+  const intents = encryptedIntents.map(decryptIntent)
+  return matchIntents(intents)
+}
+
+// Match Coincidence of Wants
 export function matchIntents(intents) {
   const matches = []
   const unmatched = [...intents]
@@ -50,8 +56,15 @@ export function matchIntents(intents) {
   return { matches, unmatched }
 }
 
-// Update balances after matching
-export function updateBalances(a, b) {
+// Check if exchange ratios are compatible (within 0.01% slippage)
+function isRatioCompatible(a, b) {
+  const ratioA = new BigNumber(a.sellAmount).div(a.minBuyAmount)
+  const ratioB = new BigNumber(b.minBuyAmount).div(b.sellAmount)
+  return ratioA.minus(ratioB).abs().lt("0.0001")
+}
+
+// Update balance after a successful CoW match
+function updateBalances(a, b) {
   if (!balances[a.user]) balances[a.user] = {}
   if (!balances[b.user]) balances[b.user] = {}
 
@@ -61,14 +74,7 @@ export function updateBalances(a, b) {
     (balances[b.user][b.buyToken] || 0) + Number(b.minBuyAmount)
 }
 
-// Ratio comparison (to avoid floating point issues)
-function isRatioCompatible(a, b) {
-  const ratioA = new BigNumber(a.sellAmount).div(a.minBuyAmount)
-  const ratioB = new BigNumber(b.minBuyAmount).div(b.sellAmount)
-  return ratioA.minus(ratioB).abs().lt("0.0001")
-}
-
-//  Build Merkle tree from balances
+// Build Merkle tree from current balances
 export function buildMerkleTree() {
   leaves = []
 
@@ -76,7 +82,9 @@ export function buildMerkleTree() {
     for (const token of Object.keys(balances[user])) {
       const amount = balances[user][token]
       const leaf = keccak256(
-        Buffer.from(`${user.toLowerCase()}${token.toLowerCase()}${amount}`)
+        Buffer.from(
+          `${user.toLowerCase()}${token.toLowerCase()}${amount.toString()}`
+        )
       )
       leaves.push(leaf)
     }
@@ -87,32 +95,28 @@ export function buildMerkleTree() {
   return root
 }
 
-//  Generate Merkle proof for a specific user/token
+// Generate a Merkle proof for a user/token
 export function generateMerkleProof(user, token) {
   const amount = balances[user]?.[token]
   if (!amount) throw new Error("No balance")
 
   const leaf = keccak256(
-    Buffer.from(`${user.toLowerCase()}${token.toLowerCase()}${amount}`)
+    Buffer.from(
+      `${user.toLowerCase()}${token.toLowerCase()}${amount.toString()}`
+    )
   )
   const proof = currentTree.getHexProof(leaf)
 
   return { leaf: leaf.toString("hex"), proof, amount }
 }
 
-// Sign root (mock)
+// Sign Merkle root with fake key (placeholder)
 export function signMerkleRoot(root) {
-  // Replace with actual TEE keypair signing
   const fakePrivateKey = "aabbccddeeff00112233445566778899"
-  const signature = crypto
-    .createHmac("sha256", fakePrivateKey)
-    .update(root)
-    .digest("hex")
-
-  return signature
+  return crypto.createHmac("sha256", fakePrivateKey).update(root).digest("hex")
 }
 
-// Export state to post on-chain
+// Build Merkle root, sign, return state
 export function exportNewState() {
   const newRoot = buildMerkleTree()
   const signature = signMerkleRoot(newRoot)
