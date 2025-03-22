@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { generateMerkleProof } from "../../lib/teescript"
+import { generateMerkleProof } from "@/lib/teescript"
 
 export async function POST(req: NextRequest) {
   const { user, token }: { user: string; token: string } = await req.json()

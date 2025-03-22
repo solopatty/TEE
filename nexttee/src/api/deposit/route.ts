@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { applyDeposits } from "../../lib/teescript"
+import { applyDeposits } from "@/lib/teescript"
 
 interface Deposit {
   user: string

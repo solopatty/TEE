@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { matchIntents } from "../../lib/teescript"
+import { matchIntents } from "@/lib/teescript"
 
 interface PlainIntent {
   user: string
