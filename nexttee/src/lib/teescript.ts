@@ -154,3 +154,19 @@ export async function postMerkleRoot(newRoot: string, signature: string) {
   await tx.wait()
   console.log("✅ Merkle root posted on-chain:", newRoot)
 }
+
+export async function generateTEEWithdrawalSignature(
+  user: string,
+  token: string,
+  amount: number
+): Promise<string> {
+  const leaf = ethers.utils.solidityKeccak256(
+    ["address", "address", "uint256"],
+    [user, token, amount]
+  )
+
+  const wallet = new ethers.Wallet(process.env.TEE_PRIVATE_KEY!)
+  const signature = await wallet.signMessage(ethers.utils.arrayify(leaf))
+
+  return signature
+}
