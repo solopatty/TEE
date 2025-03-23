@@ -1,0 +1,6 @@
+services:
+  nesttee:
+    image: 0xmihirsahu/nesttee
+    network_mode: host
+    restart: unless-stopped
+    env_file: "/init-params/.env"
