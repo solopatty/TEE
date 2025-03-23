@@ -29,6 +29,20 @@ $ npm run start:debug
 $ npm run start:prod
 ```
 
+## Docker Setup
+
+The application is containerized using Docker. To build and run the container:
+
+```bash
+# Build the Docker image
+docker build -t nesttee .
+
+# Run the container
+docker run -p 3011:3011 nesttee
+```
+
+The container exposes port 3011 by default. You can map it to a different port on your host machine by changing the first number in the port mapping (e.g., `-p 8080:3011`).
+
 ## Environment Variables
 
 Create a `.env` file based on `.env.example` with the following variables:
@@ -36,6 +50,12 @@ Create a `.env` file based on `.env.example` with the following variables:
 - `RPC_URL`: Ethereum RPC URL
 - `SOLO_PATTY_CONTRACT`: Smart contract address
 - `TEE_PRIVATE_KEY`: Private key for TEE operations
+
+When running in Docker, make sure to pass these environment variables to the container using the `-e` flag or by using a `.env` file:
+
+```bash
+docker run -p 3011:3011 --env-file .env nesttee
+```
 
 ## API Endpoints
 
