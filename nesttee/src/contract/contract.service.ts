@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { createPublicClient, http, createWalletClient } from 'viem';
 import { sepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
-import { keccak256, encodePacked } from 'viem';
+import { keccak256, encodePacked,  hexToBigInt, hexToString, hexToNumber} from 'viem';
 
 export interface Deposit {
   userAddress: string;
@@ -49,6 +49,11 @@ export class ContractService implements OnModuleInit {
     });
   }
 
+  private async getEventTimestamp(blockNumber: bigint): Promise<number> {
+    const block = await this.client.getBlock({ blockNumber });
+    return Number(block.timestamp);
+  }
+
   async onModuleInit() {
     this.logger.log('Initializing ContractService');
     await this.startDepositListener();
@@ -70,16 +75,18 @@ export class ContractService implements OnModuleInit {
         ]
       }],
       eventName: 'Deposited',
-      onLogs: (logs) => {
+      onLogs: async (logs) => {
         for (const log of logs) {
+          const timestamp = await this.getEventTimestamp(log.blockNumber);
           const deposit: Deposit = {
-            userAddress: log.args.user as string,
-            token: log.args.token as string,
-            amount: log.args.amount as bigint,
-            timestamp: Number(log.blockTimestamp),
+            userAddress: `0x${log.topics[1].slice(26)}` as string,
+            token: `0x${log.data.slice(26, 66)}` as string,
+            amount: BigInt(hexToNumber(`0x${log.data.slice(66)}`)),
+            timestamp: Math.floor(new Date(timestamp).getTime() / 1000)
           };
           this.deposits.push(deposit);
           
+          this.logger.log(deposit)
           // Update balances
           if (!this.balances[deposit.userAddress]) {
             this.balances[deposit.userAddress] = {};
@@ -93,7 +100,7 @@ export class ContractService implements OnModuleInit {
             user: deposit.userAddress,
             token: deposit.token,
             amount: deposit.amount.toString(),
-            timestamp: new Date(deposit.timestamp * 1000).toISOString()
+            timestamp: timestamp
           });
         }
       },
