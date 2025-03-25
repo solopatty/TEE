@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { Intent } from './intent.controller';
 import { ContractService } from '../contract/contract.service';
+import * as crypto from 'crypto';
 
 export enum IntentStatus {
   PENDING,
@@ -29,8 +30,29 @@ export class IntentService implements OnModuleInit {
   private intents: Intent[] = [];
   private matchInterval: NodeJS.Timeout;
   private matchNotifications: Map<string, MatchNotification[]> = new Map();
+  private readonly teeAddress = "0x92b9baA72387Fb845D8Fe88d2a14113F9cb2C4E7";
 
   constructor(private contractService: ContractService) {}
+
+  private deriveKey(address: string): Buffer {
+    return crypto.createHash('sha256').update(address).digest();
+  }
+
+  private encryptLogData(logData: any, teeAddress: string) {
+    const key = this.deriveKey(teeAddress);
+    const iv = crypto.randomBytes(12);
+
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    let encrypted = cipher.update(JSON.stringify(logData), 'utf8', 'base64');
+    encrypted += cipher.final('base64');
+    const authTag = cipher.getAuthTag().toString('base64');
+
+    return {
+      iv: iv.toString('base64'),
+      encryptedData: encrypted,
+      authTag: authTag
+    };
+  }
 
   onModuleInit() {
     this.logger.log('Initializing IntentService');
@@ -41,7 +63,7 @@ export class IntentService implements OnModuleInit {
       this.cleanupExpiredIntents();
       // Then try to match remaining intents
       await this.matchIntents();
-    }, 45000);
+    }, 50000);
   }
 
   onModuleDestroy() {
@@ -62,7 +84,7 @@ export class IntentService implements OnModuleInit {
       intent2.tokenFromAddress
     );
     const hasSufficientBalances = balance1 >= BigInt(intent1.amount) && 
-           balance2 >= BigInt(intent2.amount);
+          balance2 >= BigInt(intent2.amount);
     
     this.logger.debug(`Balance verification for intents: ${hasSufficientBalances}`, {
       intent1: { user: intent1.userAddress, balance: balance1.toString() },
@@ -90,13 +112,20 @@ export class IntentService implements OnModuleInit {
     };
 
     this.intents.push(intentWithTimestamp);
-    this.logger.log('New intent submitted', {
+
+    const logData = {
       user: intent.userAddress,
       fromToken: intent.tokenFromAddress,
       toToken: intent.tokenToAddress,
       amount: intent.amount,
       receive: intent.receive,
       expiryTime: new Date(intent.expiryTime).toISOString()
+    };
+
+    const encryptedLog = this.encryptLogData(logData, this.teeAddress);
+    
+    this.logger.log('New intent submitted', {
+      encryptedData: encryptedLog.encryptedData
     });
     
     return {
