@@ -63,7 +63,7 @@ export class IntentService implements OnModuleInit {
       this.cleanupExpiredIntents();
       // Then try to match remaining intents
       await this.matchIntents();
-    }, 45000);
+    }, 50000);
   }
 
   onModuleDestroy() {
@@ -84,7 +84,7 @@ export class IntentService implements OnModuleInit {
       intent2.tokenFromAddress
     );
     const hasSufficientBalances = balance1 >= BigInt(intent1.amount) && 
-           balance2 >= BigInt(intent2.amount);
+          balance2 >= BigInt(intent2.amount);
     
     this.logger.debug(`Balance verification for intents: ${hasSufficientBalances}`, {
       intent1: { user: intent1.userAddress, balance: balance1.toString() },

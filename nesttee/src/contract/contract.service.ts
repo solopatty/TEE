@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { createPublicClient, http, createWalletClient } from 'viem';
 import { sepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
-import { keccak256, encodePacked,  hexToBigInt, hexToString, hexToNumber} from 'viem';
+import { keccak256, encodePacked, hashMessage, hexToBigInt, hexToString, hexToNumber} from 'viem';
 
 export interface Deposit {
   userAddress: string;
@@ -143,34 +143,31 @@ export class ContractService implements OnModuleInit {
           token,
           balance: amount.toString()
         });
-        return {
-          success: false,
-          message: 'Insufficient balance'
-        };
+        return { success: false, message: 'Insufficient balance' };
       }
-
+  
       this.logger.log(`Processing withdrawal for user ${userAddress}`, {
         token,
         amount: amount.toString()
       });
-
-      // Create message to sign
-      const message = keccak256(
+  
+      // ✅ Step 1: Create message hash
+      const messageHash = keccak256(
         encodePacked(
           ['address', 'address', 'uint256'],
           [userAddress as `0x${string}`, token as `0x${string}`, amount]
         )
       );
-
-      // Sign the message
-      const signature = await this.walletClient.signMessage({
-        message: { raw: message }
-      });
-
-      // Get contract address
+  
+      // ✅ Step 2: Convert to Ethereum Signed Message Hash
+      const ethSignedMessageHash = hashMessage(messageHash);
+  
+      // ✅ Step 3: Sign the message
+      const signature = await this.walletClient.signMessage({ message: { raw: ethSignedMessageHash } });
+  
+      // ✅ Step 4: Prepare contract call
       const contractAddress = this.configService.get<string>('soloPattyContract') as `0x${string}`;
-
-      // Prepare contract call
+  
       const { request } = await this.client.simulateContract({
         address: contractAddress,
         abi: [{
@@ -188,20 +185,20 @@ export class ContractService implements OnModuleInit {
         functionName: 'withdrawTokensWithSignature',
         args: [userAddress as `0x${string}`, token as `0x${string}`, amount, signature]
       });
-
-      // Send transaction
+  
+      // ✅ Step 5: Send transaction
       const hash = await this.walletClient.writeContract(request);
-
-      // Update balance after successful withdrawal
-      this.updateBalance(userAddress, token, 0n);
-
+  
+      // ✅ Step 6: Deduct only the withdrawn amount (not reset to 0)
+      this.updateBalance(userAddress, token, amount - amount);
+  
       this.logger.log(`Withdrawal successful`, {
         user: userAddress,
         token,
         amount: amount.toString(),
         transactionHash: hash
       });
-
+  
       return {
         success: true,
         message: `Withdrawal successful. Transaction hash: ${hash}`
