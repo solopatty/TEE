@@ -85,8 +85,6 @@ export class ContractService implements OnModuleInit {
             timestamp: Math.floor(new Date(timestamp).getTime() / 1000)
           };
           this.deposits.push(deposit);
-          
-          this.logger.log(deposit)
           // Update balances
           if (!this.balances[deposit.userAddress]) {
             this.balances[deposit.userAddress] = {};

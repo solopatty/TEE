@@ -18,7 +18,6 @@ export class LoggingInterceptor implements NestInterceptor {
             request: {
               method,
               url,
-              body,
               query,
               params,
             },

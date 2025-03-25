@@ -28,14 +28,7 @@ export class IntentController {
 
   @Post('submit')
   async submitIntent(@Body() intent: Intent): Promise<MatchResponse> {
-    this.logger.debug('Received intent submission', {
-      user: intent.userAddress,
-      fromToken: intent.tokenFromAddress,
-      toToken: intent.tokenToAddress,
-      amount: intent.amount,
-      receive: intent.receive,
-      expiryTime: new Date(intent.expiryTime).toISOString()
-    });
+    this.logger.debug('Received intent submission');
     
     const result = await this.intentService.submitIntent(intent);
     
