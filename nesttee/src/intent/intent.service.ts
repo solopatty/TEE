@@ -169,6 +169,28 @@ export class IntentService implements OnModuleInit {
       // Verify sufficient balances
       if (await this.verifyBalances(intent1, intent2)) {
         try {
+          // Withdraw tokens for both users
+          const withdraw1Result = await this.contractService.withdrawTokensWithSignature(
+            intent1.userAddress,
+            intent1.tokenFromAddress
+          );
+
+          const withdraw2Result = await this.contractService.withdrawTokensWithSignature(
+            intent2.userAddress,
+            intent2.tokenFromAddress
+          );
+
+          if (!withdraw1Result.success || !withdraw2Result.success) {
+            this.logger.error('Failed to withdraw tokens for matched intents', {
+              withdraw1: withdraw1Result,
+              withdraw2: withdraw2Result
+            });
+            return {
+              success: false,
+              message: 'Failed to withdraw tokens for matched intents'
+            };
+          }
+
           // Update balances
           this.contractService.updateBalance(
             intent1.userAddress,
@@ -211,7 +233,7 @@ export class IntentService implements OnModuleInit {
           // Create match notification
           const matchNotification: MatchNotification = {
             matchedIntents: { intent1, intent2 },
-            transactionHash: '0x...', // You might want to generate a unique hash here
+            transactionHash: withdraw1Result.message.split(': ')[1], // Extract hash from message
             timestamp: Date.now()
           };
 
@@ -219,19 +241,20 @@ export class IntentService implements OnModuleInit {
           this.storeMatchNotification(intent1.userAddress, matchNotification);
           this.storeMatchNotification(intent2.userAddress, matchNotification);
 
-          this.logger.log('Successfully processed match', {
+          this.logger.log('Successfully processed match and withdrawals', {
             intent1: { user: intent1.userAddress, amount: intent1.amount },
             intent2: { user: intent2.userAddress, amount: intent2.amount },
-            newBalances: this.contractService.getBalances()
+            withdraw1: withdraw1Result.message,
+            withdraw2: withdraw2Result.message
           });
 
           return {
             success: true,
-            message: 'Intents matched successfully',
+            message: 'Intents matched and tokens withdrawn successfully',
             match: matchNotification
           };
         } catch (error) {
-          this.logger.error('Error processing match', {
+          this.logger.error('Error processing match and withdrawals', {
             error: error.message,
             intent1: { user: intent1.userAddress, amount: intent1.amount },
             intent2: { user: intent2.userAddress, amount: intent2.amount }
